@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     GITHUB_TOKEN: str = ""
     GITHUB_USERNAME: str = ""
 
+    # ── Obsidian vault git sync ───────────────────────────────────────────────
+    # Leave empty to disable auto-commit after ingestion
+    VAULT_REPO_URL: str = ""
+
     # ── Telegram ──────────────────────────────────────────────────────────────
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_ALLOWED_USER_ID: str = ""

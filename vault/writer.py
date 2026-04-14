@@ -2,8 +2,10 @@
 Obsidian vault writer.
 Creates and maintains the PARA folder structure and writes markdown notes
 with YAML frontmatter for every ingested source.
+Optionally auto-commits and pushes to a GitHub repo after every write.
 """
 import re
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -94,7 +96,45 @@ ingested_at: {ingested_at}{tags_yaml}
 """
 
     note_path.write_text(content, encoding="utf-8")
+    _git_sync(vault, f"add: {parsed['title'][:60]}")
     return note_path
+
+
+def _git_sync(vault: Path, commit_msg: str) -> None:
+    """
+    Auto-commit and push vault changes to GitHub.
+    Silently skips if VAULT_REPO_URL is not configured or git fails.
+    Uses token-authenticated HTTPS remote.
+    """
+    if not settings.VAULT_REPO_URL or not settings.GITHUB_TOKEN:
+        return
+
+    # Inject token into remote URL: https://<token>@github.com/user/repo
+    url = settings.VAULT_REPO_URL
+    if "https://" in url and "@" not in url:
+        url = url.replace("https://", f"https://{settings.GITHUB_TOKEN}@")
+
+    try:
+        env = {"GIT_TERMINAL_PROMPT": "0"}  # never prompt for credentials
+        run = lambda cmd: subprocess.run(
+            cmd, cwd=vault, capture_output=True, text=True, env={**__import__("os").environ, **env}
+        )
+
+        # Init repo if first time
+        if not (vault / ".git").exists():
+            run(["git", "init"])
+            run(["git", "remote", "add", "origin", url])
+        else:
+            # Update remote URL with fresh token (token may have changed)
+            run(["git", "remote", "set-url", "origin", url])
+
+        run(["git", "add", "-A"])
+        result = run(["git", "commit", "-m", commit_msg])
+        if result.returncode == 0:
+            run(["git", "push", "-u", "origin", "HEAD"])
+            print(f"  ↑ Vault synced to GitHub")
+    except Exception as e:
+        print(f"  [vault sync] skipped: {e}")
 
 
 def write_research_note(

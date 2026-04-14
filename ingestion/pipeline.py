@@ -23,6 +23,72 @@ _STRATEGY_MAP = {
 }
 
 
+def ingest_parsed(parsed: dict, para_category: str = "Resources", tags: list = None) -> dict:
+    """
+    Ingest an already-parsed content dict, skipping the parse step.
+    Used by connectors (GitHub, Obsidian) that fetch content themselves.
+
+    Args:
+        parsed: Dict with keys: title, text, source_type, source_url, file_path, metadata
+        para_category: PARA folder
+        tags: Optional tag list
+
+    Returns:
+        Same summary dict as ingest()
+    """
+    tags = tags or []
+
+    print(f"[2/3] Chunking '{parsed['title']}' ({len(parsed['text'])} chars)")
+    strategy = _STRATEGY_MAP.get(parsed["source_type"], "recursive")
+    chunks = [c for c in get_chunks(parsed["text"], strategy=strategy) if len(c.strip()) > 30]
+    print(f"       {len(chunks)} chunks")
+
+    doc_id = str(uuid.uuid5(
+        uuid.NAMESPACE_URL,
+        parsed.get("source_url") or parsed.get("file_path") or parsed["title"],
+    ))
+
+    print(f"[3/3] Embedding + storing {len(chunks)} chunks...")
+    vector_store.upsert_document({
+        "id":           doc_id,
+        "title":        parsed["title"],
+        "source_type":  parsed["source_type"],
+        "source_url":   parsed.get("source_url") or "",
+        "file_path":    parsed.get("file_path") or "",
+        "para_category": para_category,
+        "tags":         tags,
+        "metadata":     parsed.get("metadata", {}),
+    })
+
+    chunk_records = [
+        {
+            "id":          f"{doc_id}__chunk_{i}",
+            "doc_id":      doc_id,
+            "chunk_index": i,
+            "text":        text,
+            "metadata": {
+                "title":        parsed["title"],
+                "source_type":  parsed["source_type"],
+                "source_url":   parsed.get("source_url") or "",
+                "file_path":    parsed.get("file_path") or "",
+                "para_category": para_category,
+                "tags":         ",".join(tags),
+                "ingested_at":  datetime.now().isoformat(),
+            },
+        }
+        for i, text in enumerate(chunks)
+    ]
+    vector_store.add_batch(chunk_records)
+
+    return {
+        "title":       parsed["title"],
+        "source_type": parsed["source_type"],
+        "chunks":      len(chunks),
+        "doc_id":      doc_id,
+        "vault_note":  "",
+    }
+
+
 def ingest(source: str, para_category: str = "Resources", tags: list = None) -> dict:
     """
     Ingest any supported source into the knowledge base.

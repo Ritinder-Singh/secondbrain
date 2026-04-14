@@ -108,11 +108,57 @@ def cmd_stats(args):
     console.print()
 
 
-# ── Phase 2+ stubs (not yet implemented) ────────────────────────────────────
+# ── Phase 2 commands ──────────────────────────────────────────────────────────
+
+def cmd_github(args):
+    from connectors.github.ingest import ingest_repo, ingest_all_repos
+    if args.repo == "all":
+        results = ingest_all_repos()
+        for r in results:
+            console.print(
+                f"  [green]✓[/green] {r['repo']} — "
+                f"{r['files_ingested']} files, {r['issues_ingested']} issues, {r['prs_ingested']} PRs"
+            )
+    else:
+        r = ingest_repo(args.repo)
+        console.print(
+            f"[green]✓[/green] {r['repo']} — "
+            f"{r['files_ingested']} files, {r['issues_ingested']} issues, {r['prs_ingested']} PRs"
+        )
+
+
+def cmd_sync(args):
+    from connectors.registry import sync_all, get_connector
+    if args.connector:
+        result = get_connector(args.connector).sync(dry_run=args.dry_run)
+        console.print(result)
+    else:
+        results = sync_all(dry_run=args.dry_run)
+        for r in results:
+            status = "[green]✓[/green]" if not r["errors"] else "[yellow]⚠[/yellow]"
+            console.print(
+                f"{status} {r['connector']} — "
+                f"{r['ingested']} ingested, {r['skipped']} skipped, {len(r['errors'])} errors"
+            )
+
+
+def cmd_voice(args):
+    from voice.assistant import voice_query_loop
+    voice_query_loop()
+
+
+def cmd_note(args):
+    from voice.mic import ingest_voice_note
+    result = ingest_voice_note()
+    if result:
+        console.print(f"\n[green]✓[/green] Voice note saved → {result['vault_note']}")
+
+
+# ── Phase 3+ stubs ────────────────────────────────────────────────────────────
 
 def _not_implemented(name: str):
     def _cmd(args):
-        console.print(f"[yellow]{name} is implemented in Phase 2.[/yellow]")
+        console.print(f"[yellow]{name} is implemented in Phase 3.[/yellow]")
     return _cmd
 
 
@@ -154,11 +200,20 @@ def main():
     # stats
     sub.add_parser("stats", help="Show knowledge base stats")
 
-    # Phase 2+ stubs
-    sub.add_parser("voice",    help="Voice assistant (Phase 2)")
-    sub.add_parser("note",     help="Ingest a voice note (Phase 2)")
-    sub.add_parser("sync",     help="Sync all connectors (Phase 2)")
-    sub.add_parser("telegram", help="Start Telegram bot (Phase 2)")
+    # github
+    a = sub.add_parser("github", help="Ingest a GitHub repo (or 'all')")
+    a.add_argument("repo", help="owner/repo, repo name, or 'all'")
+
+    # sync
+    a = sub.add_parser("sync", help="Sync all connectors (GitHub + Obsidian vault)")
+    a.add_argument("--connector", help="Run only a specific connector by name")
+    a.add_argument("--dry-run", action="store_true", help="List what would be ingested")
+
+    # voice
+    sub.add_parser("voice", help="Start hands-free voice assistant")
+    sub.add_parser("note",  help="Record + ingest a voice note")
+
+    # Phase 3+ stubs
     sub.add_parser("research", help="Queue a research task (Phase 3)")
     a = sub.add_parser("serve", help="Start web UI (Phase 4)")
     a.add_argument("--port", type=int, default=8000)
@@ -173,10 +228,10 @@ def main():
         "search":   cmd_search,
         "list":     cmd_list,
         "stats":    cmd_stats,
-        "voice":    _not_implemented("voice"),
-        "note":     _not_implemented("note"),
-        "sync":     _not_implemented("sync"),
-        "telegram": _not_implemented("telegram"),
+        "github":   cmd_github,
+        "sync":     cmd_sync,
+        "voice":    cmd_voice,
+        "note":     cmd_note,
         "research": _not_implemented("research"),
         "serve":    _not_implemented("serve"),
     }

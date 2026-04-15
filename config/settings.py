@@ -72,8 +72,12 @@ class Settings(BaseSettings):
     BOOKSTACK_TOKEN_SECRET: str = ""
 
     # ── Web Search (Phase 3) ──────────────────────────────────────────────────
-    SEARCH_PROVIDER: Literal["duckduckgo", "searxng"] = "duckduckgo"
+    SEARCH_PROVIDER: Literal["duckduckgo", "searxng"] = "searxng"
     SEARXNG_URL: str = ""
+
+    # ── Notifications — ntfy.sh (Phase 3) ────────────────────────────────────
+    NTFY_URL: str = "https://ntfy.sh"   # or your self-hosted instance
+    NTFY_TOPIC: str = ""                # e.g. "engram-research-abc123"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

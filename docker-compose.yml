@@ -18,5 +18,16 @@ services:
       timeout: 5s
       retries: 5
 
+  ntfy:
+    image: binwiederhier/ntfy
+    container_name: engram-ntfy
+    command: serve
+    ports:
+      - "8080:80"
+    volumes:
+      - ./ntfy/cache:/var/cache/ntfy
+      - ./ntfy/etc:/etc/ntfy
+    restart: unless-stopped
+
 volumes:
   postgres_data:

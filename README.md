@@ -58,9 +58,81 @@ engram list                     # show ingested documents
 engram stats                    # chunk count
 engram sync                     # sync GitHub + Obsidian vault
 engram github <owner/repo>      # ingest a specific repo
-engram voice                    # start voice assistant
+engram voice                    # start hands-free voice assistant
 engram note                     # record + ingest a voice note
+engram research "topic"         # research a topic (foreground)
+engram research "topic" -b      # queue research in background
+engram research --list          # list recent research tasks
 ```
+
+---
+
+## SearXNG Setup (Phase 3)
+
+Run alongside Engram on your Raspberry Pi:
+
+```bash
+docker run -d \
+  --name searxng \
+  -p 8888:8080 \
+  -v $(pwd)/searxng:/etc/searxng \
+  searxng/searxng
+```
+
+Then set in `.env`:
+```bash
+SEARCH_PROVIDER=searxng
+SEARXNG_URL=http://localhost:8888
+```
+
+---
+
+## ntfy Setup (Phase 3) — Self-hosted
+
+Push notifications to your phone when background research completes.
+
+### 1. Run ntfy on your Raspberry Pi
+
+Add to your `docker-compose.yml` (or run separately):
+
+```yaml
+ntfy:
+  image: binwiederhier/ntfy
+  container_name: ntfy
+  command: serve
+  ports:
+    - "8080:80"
+  volumes:
+    - ./ntfy/cache:/var/cache/ntfy
+    - ./ntfy/etc:/etc/ntfy
+  restart: unless-stopped
+```
+
+Or standalone:
+
+```bash
+docker run -d \
+  --name ntfy \
+  -p 8080:80 \
+  -v $(pwd)/ntfy/cache:/var/cache/ntfy \
+  binwiederhier/ntfy \
+  serve
+```
+
+### 2. Configure
+
+Set in `.env`:
+
+```bash
+NTFY_URL=https://ntfy.yourdomain.com   # your self-hosted instance (or http://rpi-ip:8080)
+NTFY_TOPIC=engram                      # topic name
+```
+
+### 3. Subscribe on your phone
+
+1. Install the [ntfy app](https://ntfy.sh) (iOS / Android)
+2. In the app: **Settings → Default server** → set to your instance URL
+3. Subscribe to the `engram` topic
 
 ---
 

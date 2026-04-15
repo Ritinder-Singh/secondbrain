@@ -154,12 +154,60 @@ def cmd_note(args):
         console.print(f"\n[green]✓[/green] Voice note saved → {result['vault_note']}")
 
 
-# ── Phase 3+ stubs ────────────────────────────────────────────────────────────
+# ── Phase 3 commands ──────────────────────────────────────────────────────────
 
-def _not_implemented(name: str):
-    def _cmd(args):
-        console.print(f"[yellow]{name} is implemented in Phase 3.[/yellow]")
-    return _cmd
+def cmd_research(args):
+    import asyncio
+    from research.agent import run_research
+    from research.scheduler import queue_research, list_research_tasks
+
+    if args.list:
+        from research.scheduler import list_research_tasks
+        tasks = list_research_tasks()
+        if not tasks:
+            console.print("[dim]No research tasks yet.[/dim]")
+            return
+        from rich.table import Table
+        table = Table(title="Research Tasks")
+        table.add_column("ID", style="dim", width=10)
+        table.add_column("Title")
+        table.add_column("Status", style="cyan")
+        table.add_column("Created", style="dim")
+        for t in tasks:
+            table.add_row(
+                t["id"][:8],
+                t["title"],
+                t["status"],
+                str(t["created_at"])[:16] if t["created_at"] else "—",
+            )
+        console.print(table)
+        return
+
+    trigger = " ".join(args.trigger)
+
+    if args.background:
+        rid = asyncio.run(queue_research(trigger))
+        console.print(f"[green]✓[/green] Research queued — ID: [bold]{rid[:8]}[/bold]")
+        console.print("  Runs in background. You'll get a ntfy.sh notification when done.")
+    else:
+        console.print(f"\n[cyan]🔬 Researching:[/cyan] {trigger}\n")
+        result = asyncio.run(run_research(trigger))
+        console.print(f"\n[green]✓[/green] Research complete!")
+        console.print(f"  Topics : {', '.join(result['topics'])}")
+        console.print(f"  Note   : {result['vault_note']}\n")
+
+
+# ── Phase 4 commands ──────────────────────────────────────────────────────────
+
+def cmd_serve(args):
+    import uvicorn
+    console.print(f"[bold cyan]🌐 Starting Engram web UI on http://localhost:{args.port}[/bold cyan]")
+    uvicorn.run(
+        "interfaces.web.app:app",
+        host="0.0.0.0",
+        port=args.port,
+        reload=args.reload,
+    )
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -213,8 +261,12 @@ def main():
     sub.add_parser("voice", help="Start hands-free voice assistant")
     sub.add_parser("note",  help="Record + ingest a voice note")
 
-    # Phase 3+ stubs
-    sub.add_parser("research", help="Queue a research task (Phase 3)")
+    # research
+    a = sub.add_parser("research", help="Run or queue a research task")
+    a.add_argument("trigger", nargs="*", help="Topic or question to research")
+    a.add_argument("--background", "-b", action="store_true",
+                   help="Queue and run in background (ntfy.sh notification when done)")
+    a.add_argument("--list", "-l", action="store_true", help="List recent research tasks")
     a = sub.add_parser("serve", help="Start web UI (Phase 4)")
     a.add_argument("--port", type=int, default=8000)
     a.add_argument("--reload", action="store_true")
@@ -232,8 +284,8 @@ def main():
         "sync":     cmd_sync,
         "voice":    cmd_voice,
         "note":     cmd_note,
-        "research": _not_implemented("research"),
-        "serve":    _not_implemented("serve"),
+        "research": cmd_research,
+        "serve":    cmd_serve,
     }
 
     handler = dispatch.get(args.command)

@@ -144,6 +144,40 @@ def write_research_note(
 ) -> Path:
     """
     Write an AI-generated research note to the Research PARA folder.
-    Implemented in Phase 3 — stub raises NotImplementedError for now.
+
+    Args:
+        topic: Primary research topic (used as note title + filename)
+        content: Full markdown body of the research note
+        source_note: Optional trigger text or voice note ID for reference
+
+    Returns:
+        Path to the written note
     """
-    raise NotImplementedError("Research note writing is implemented in Phase 3")
+    vault = settings.VAULT_PATH
+    folder = vault / "Research"
+    folder.mkdir(parents=True, exist_ok=True)
+
+    slug = _slugify(topic)
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H%M")
+    note_path = folder / f"{timestamp}-{slug}.md"
+
+    source_line = f"\n**Triggered by:** {source_note}" if source_note else ""
+
+    note = f"""---
+title: "{topic.replace('"', "'")}"
+source_type: research_note
+para_category: Research
+tags:
+  - research
+  - ai-generated
+generated_at: {datetime.now().strftime("%Y-%m-%d %H:%M")}
+---
+
+> AI-generated research note.{source_line}
+
+{content}
+"""
+
+    note_path.write_text(note, encoding="utf-8")
+    _git_sync(vault, f"research: {topic[:60]}")
+    return note_path

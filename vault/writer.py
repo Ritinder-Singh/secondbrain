@@ -106,13 +106,13 @@ def _git_sync(vault: Path, commit_msg: str) -> None:
     Silently skips if VAULT_REPO_URL is not configured or git fails.
     Uses token-authenticated HTTPS remote.
     """
-    if not settings.VAULT_REPO_URL or not settings.GITHUB_TOKEN:
+    if not settings.VAULT_REPO_URL or not settings.VAULT_GITHUB_TOKEN:
         return
 
     # Inject token into remote URL: https://<token>@github.com/user/repo
     url = settings.VAULT_REPO_URL
     if "https://" in url and "@" not in url:
-        url = url.replace("https://", f"https://{settings.GITHUB_TOKEN}@")
+        url = url.replace("https://", f"https://{settings.VAULT_GITHUB_TOKEN}@")
 
     try:
         env = {"GIT_TERMINAL_PROMPT": "0"}  # never prompt for credentials

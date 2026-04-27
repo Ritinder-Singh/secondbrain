@@ -54,24 +54,28 @@ def record_until_silence(max_seconds: int = 120) -> np.ndarray:
 
 
 def transcribe(audio: np.ndarray) -> str:
-    """
-    Transcribe audio array using faster-whisper (local, no API).
-    Returns transcript string.
-    """
+    """Transcribe a numpy audio array using local faster-whisper."""
     from faster_whisper import WhisperModel
 
     model = WhisperModel(settings.WHISPER_MODEL, device=settings.WHISPER_DEVICE)
-
-    # faster-whisper needs a file path or float32 array
     audio_f32 = audio.astype(np.float32) / 32768.0
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         sf.write(f.name, audio_f32, SAMPLE_RATE)
-        segments, info = model.transcribe(f.name, beam_size=5)
+        segments, _ = model.transcribe(f.name, beam_size=5)
         transcript = " ".join(s.text for s in segments).strip()
         Path(f.name).unlink(missing_ok=True)
 
     return transcript
+
+
+def transcribe_file(path: str) -> str:
+    """Transcribe an audio file path using local faster-whisper. Used for voice notes."""
+    from faster_whisper import WhisperModel
+
+    model = WhisperModel(settings.WHISPER_MODEL, device=settings.WHISPER_DEVICE)
+    segments, _ = model.transcribe(path, beam_size=5)
+    return " ".join(s.text for s in segments).strip()
 
 
 def record_and_transcribe(max_seconds: int = 120) -> str:

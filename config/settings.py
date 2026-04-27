@@ -8,16 +8,15 @@ class Settings(BaseSettings):
     APP_NAME: str = "Engram"
     VERSION: str = "0.1.0"
 
-    # ── LLM ───────────────────────────────────────────────────────────────────
-    LLM_PROVIDER: Literal["ollama", "groq"] = "ollama"
-
+    # ── LLM (Ollama only — strictly local) ───────────────────────────────────
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.1:8b"
     OLLAMA_EMBED_MODEL: str = "nomic-embed-text"
 
+    # ── Transcription (Groq Whisper for YouTube only — public content) ────────
+    # Leave empty to use local faster-whisper for everything
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.1-8b-instant"
-    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+    GROQ_WHISPER_MODEL: str = "whisper-large-v3-turbo"
 
     # ── PostgreSQL + pgvector ─────────────────────────────────────────────────
     POSTGRES_HOST: str = "localhost"
@@ -50,12 +49,12 @@ class Settings(BaseSettings):
     EMBED_DIMS: int = 768
 
     # ── GitHub ────────────────────────────────────────────────────────────────
-    GITHUB_TOKEN: str = ""
+    GITHUB_TOKEN: str = ""       # read-only, all repos (for ingestion/awareness)
     GITHUB_USERNAME: str = ""
 
     # ── Obsidian vault git sync ───────────────────────────────────────────────
-    # Leave empty to disable auto-commit after ingestion
     VAULT_REPO_URL: str = ""
+    VAULT_GITHUB_TOKEN: str = ""  # write access to engram-vault repo only
 
     # ── Telegram ──────────────────────────────────────────────────────────────
     TELEGRAM_BOT_TOKEN: str = ""
@@ -71,13 +70,12 @@ class Settings(BaseSettings):
     BOOKSTACK_TOKEN_ID: str = ""
     BOOKSTACK_TOKEN_SECRET: str = ""
 
-    # ── Web Search (Phase 3) ──────────────────────────────────────────────────
-    SEARCH_PROVIDER: Literal["duckduckgo", "searxng"] = "searxng"
+    # ── Web Search (Phase 3 — self-hosted SearXNG only) ──────────────────────
     SEARXNG_URL: str = ""
 
-    # ── Notifications — ntfy.sh (Phase 3) ────────────────────────────────────
-    NTFY_URL: str = "https://ntfy.sh"   # or your self-hosted instance
-    NTFY_TOPIC: str = ""                # e.g. "engram-research-abc123"
+    # ── Notifications — ntfy (Phase 3) ───────────────────────────────────────
+    NTFY_URL: str = ""    # point at your self-hosted ntfy instance
+    NTFY_TOPIC: str = ""  # e.g. "engram-research-abc123"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

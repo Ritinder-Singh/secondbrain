@@ -37,9 +37,6 @@ dependencies = [
     "webdavclient3>=3.14.0",
     "pyyaml>=6.0",
 
-    # Phase 3: Research Agent
-    "duckduckgo-search>=5.0.0",
-
     # Phase 4: Quality + Web UI
     "flashrank>=0.0.9",
     "fastapi>=0.110.0",

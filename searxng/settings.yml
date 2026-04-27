@@ -1,0 +1,22 @@
+use_default_settings: true
+
+server:
+  secret_key: "engram-searxng-secret-change-me"
+  limiter: false
+  image_proxy: false
+
+search:
+  safe_search: 0
+  formats:
+    - html
+    - json
+
+engines:
+  - name: google
+    engine: google
+    use_mobile_ui: false
+  - name: duckduckgo
+    engine: duckduckgo
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: wp

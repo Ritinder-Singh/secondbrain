@@ -50,25 +50,28 @@ def parse_youtube(url: str) -> dict:
     import yt_dlp
     import tempfile
     import os
-    from faster_whisper import WhisperModel
     from config.settings import settings
 
     with yt_dlp.YoutubeDL({"quiet": True}) as ydl:
         info = ydl.extract_info(url, download=False)
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        audio_path = os.path.join(tmpdir, "audio.mp3")
+        outtmpl = os.path.join(tmpdir, "audio.%(ext)s")
         with yt_dlp.YoutubeDL({
             "format": "bestaudio/best",
-            "outtmpl": audio_path,
+            "outtmpl": outtmpl,
             "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}],
             "quiet": True,
         }) as ydl:
             ydl.download([url])
 
-        model = WhisperModel(settings.WHISPER_MODEL, device=settings.WHISPER_DEVICE)
-        segments, _ = model.transcribe(audio_path, beam_size=5)
-        transcript = " ".join(s.text for s in segments)
+        # find the actual output file (yt-dlp may vary the name)
+        candidates = [f for f in os.listdir(tmpdir) if f.endswith(".mp3")]
+        if not candidates:
+            raise RuntimeError(f"yt-dlp produced no mp3 in {tmpdir}: {os.listdir(tmpdir)}")
+        audio_path = os.path.join(tmpdir, candidates[0])
+
+        transcript = _transcribe_youtube(audio_path, settings)
 
     return {
         "title": info.get("title", "Unknown"),
@@ -80,8 +83,38 @@ def parse_youtube(url: str) -> dict:
             "channel": info.get("channel", ""),
             "duration_seconds": info.get("duration", 0),
             "transcribed_at": datetime.now().isoformat(),
+            "transcriber": "groq" if _settings_has_groq() else "local",
         },
     }
+
+
+def _settings_has_groq() -> bool:
+    from config.settings import settings
+    return bool(settings.GROQ_API_KEY)
+
+
+def _transcribe_youtube(audio_path: str, settings) -> str:
+    """Groq Whisper for YouTube (public content). Falls back to local if no key."""
+    if settings.GROQ_API_KEY:
+        try:
+            from openai import OpenAI
+            client = OpenAI(
+                api_key=settings.GROQ_API_KEY,
+                base_url="https://api.groq.com/openai/v1",
+            )
+            with open(audio_path, "rb") as f:
+                result = client.audio.transcriptions.create(
+                    model=settings.GROQ_WHISPER_MODEL,
+                    file=f,
+                )
+            return result.text
+        except Exception as e:
+            print(f"[YouTube] Groq transcription failed ({e}), falling back to local Whisper")
+
+    from faster_whisper import WhisperModel
+    model = WhisperModel(settings.WHISPER_MODEL, device=settings.WHISPER_DEVICE)
+    segments, _ = model.transcribe(audio_path, beam_size=5)
+    return " ".join(s.text for s in segments)
 
 
 def parse_audio_file(path) -> dict:

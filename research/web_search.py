@@ -1,23 +1,19 @@
 """
-Web search provider.
-SearXNG (self-hosted, private) is the primary.
-DuckDuckGo is the fallback when SearXNG is not configured.
+Web search via self-hosted SearXNG only. Strictly offline.
+Set SEARXNG_URL in .env to enable. Leave blank to disable research features.
 """
 import requests
 from config.settings import settings
 
 
 def web_search(query: str, max_results: int = 8) -> list[dict]:
-    """
-    Search the web. Returns list of {title, url, snippet}.
-    Uses SearXNG if SEARXNG_URL is set, otherwise DuckDuckGo.
-    """
-    if settings.SEARCH_PROVIDER == "searxng" and settings.SEARXNG_URL:
-        try:
-            return _searxng_search(query, max_results)
-        except Exception as e:
-            print(f"[WebSearch] SearXNG failed ({e}), falling back to DuckDuckGo")
-    return _ddg_search(query, max_results)
+    """Search via local SearXNG. Raises RuntimeError if SEARXNG_URL is not configured."""
+    if not settings.SEARXNG_URL:
+        raise RuntimeError(
+            "Web search is disabled. Set SEARXNG_URL in .env to point at your "
+            "self-hosted SearXNG instance."
+        )
+    return _searxng_search(query, max_results)
 
 
 def _searxng_search(query: str, n: int) -> list[dict]:
@@ -36,16 +32,3 @@ def _searxng_search(query: str, n: int) -> list[dict]:
         }
         for r in data.get("results", [])[:n]
     ]
-
-
-def _ddg_search(query: str, n: int) -> list[dict]:
-    from duckduckgo_search import DDGS
-    results = []
-    with DDGS() as ddg:
-        for r in ddg.text(query, max_results=n):
-            results.append({
-                "title":   r.get("title", ""),
-                "url":     r.get("href", ""),
-                "snippet": r.get("body", ""),
-            })
-    return results

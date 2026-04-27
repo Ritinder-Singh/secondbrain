@@ -29,5 +29,16 @@ services:
       - ./ntfy/etc:/etc/ntfy
     restart: unless-stopped
 
+  searxng:
+    image: searxng/searxng:latest
+    container_name: engram-searxng
+    ports:
+      - "8888:8080"
+    volumes:
+      - ./searxng:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8888
+    restart: unless-stopped
+
 volumes:
   postgres_data:

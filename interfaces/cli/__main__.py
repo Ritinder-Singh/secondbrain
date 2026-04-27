@@ -199,6 +199,11 @@ def cmd_research(args):
 
 # ── Phase 4 commands ──────────────────────────────────────────────────────────
 
+def cmd_telegram(args):
+    from interfaces.telegram.bot import run
+    run()
+
+
 def cmd_serve(args):
     import uvicorn
     console.print(f"[bold cyan]🌐 Starting Engram web UI on http://localhost:{args.port}[/bold cyan]")
@@ -267,6 +272,9 @@ def main():
     a.add_argument("--background", "-b", action="store_true",
                    help="Queue and run in background (ntfy.sh notification when done)")
     a.add_argument("--list", "-l", action="store_true", help="List recent research tasks")
+    # telegram
+    sub.add_parser("telegram", help="Start Telegram bot")
+
     a = sub.add_parser("serve", help="Start web UI (Phase 4)")
     a.add_argument("--port", type=int, default=8000)
     a.add_argument("--reload", action="store_true")
@@ -285,6 +293,7 @@ def main():
         "voice":    cmd_voice,
         "note":     cmd_note,
         "research": cmd_research,
+        "telegram": cmd_telegram,
         "serve":    cmd_serve,
     }
 

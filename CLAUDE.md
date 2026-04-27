@@ -20,7 +20,7 @@ Working name: **Engram**. Other candidates: Exo, Recall, Etch.
 
 | Decision | Choice | Reason |
 |---|---|---|
-| LLM runtime | Ollama (local, primary) + Groq (cloud fallback) | Privacy + free fallback |
+| LLM runtime | Ollama only (strictly local) | Privacy-first — no cloud calls |
 | Embeddings | `nomic-embed-text` via Ollama | Always local — never sent to cloud |
 | Vector store | PostgreSQL + pgvector | Production-appropriate, self-hostable, resume story |
 | Knowledge storage | Obsidian vault (PARA structure, plain markdown) | Human-readable, portable |
@@ -50,7 +50,7 @@ secondBrain/
 | Module | Purpose |
 |---|---|
 | `config/settings.py` | Pydantic settings, all config via `.env` |
-| `core/llm.py` | Unified Ollama/Groq client (OpenAI-compatible) |
+| `core/llm.py` | Ollama client (strictly local, OpenAI-compatible API) |
 | `core/rag.py` | RAG pipeline: retrieve → augment → generate |
 | `core/vector_store.py` | pgvector wrapper — semantic search |
 | `core/memory.py` | Persistent conversation memory in PostgreSQL |
@@ -64,7 +64,7 @@ secondBrain/
 | `connectors/github/ingest.py` | GitHub repos (function-level), issues, PRs |
 | `connectors/selfhosted/` | Nextcloud (WebDAV), BookStack (REST), Obsidian sync |
 | `research/agent.py` | Async research pipeline (Phase 3) |
-| `research/web_search.py` | DuckDuckGo / SearXNG |
+| `research/web_search.py` | Self-hosted SearXNG (requires SEARXNG_URL in .env) |
 | `research/synthesizer.py` | Multi-source synthesis → structured note |
 | `research/scheduler.py` | asyncio-based background task runner |
 | `voice/mic.py` | Mic recording + Whisper transcription |
@@ -125,7 +125,7 @@ uvicorn interfaces.web.app:app --reload --port 8000
 - Pydantic for settings/validation
 - `psycopg2` + connection pool (not SQLAlchemy) — keep it simple
 - pgvector types registered per-connection via `register_vector(conn)`
-- Embeddings always via local Ollama, regardless of `LLM_PROVIDER` setting
+- Embeddings always via local Ollama
 - Async only where necessary (research agent, Telegram bot, FastAPI routes)
 - No Celery/Redis — asyncio + postgres queue is enough for personal use
 - Rich for CLI output formatting
